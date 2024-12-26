@@ -1,0 +1,378 @@
+// Define the datasource for the database (PostgreSQL)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Define the generator for Prisma Client
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model
+model User {
+  id                     String            @id @default(cuid())
+  name                   String?
+  email                  String            @unique
+  image                  String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  blinks                 Blink[]
+  payments               Payment[]
+  sentDonations          Donation[]        @relation("DonationSender")
+  receivedDonations      Donation[]        @relation("DonationRecipient")
+  sentGifts              BlinkGift[]       @relation("Sender")
+  receivedGifts          BlinkGift[]       @relation("Recipient")
+  balance                Decimal           @default(0)
+  solanaWallets          SolanaWallet[]
+  mainWalletId           String?           @unique
+  mainWallet             SolanaWallet?     @relation("MainWallet", fields: [mainWalletId], references: [id])
+  mintedTokens           MintedToken[]
+  sentBlinkDonations     BlinkDonation[]   @relation("DonationSender")
+  receivedBlinkDonations BlinkDonation[]   @relation("DonationRecipient")
+  airdrops               AirdropClaim[]    // Relation to airdrop claims
+  whitelists             Whitelist[]       // New relation for whitelist entries
+  airdropEligibilities   AirdropEligibility[] // Relation for airdrop eligibility
+
+  @@index([email])
+}
+
+// SolanaWallet model
+model SolanaWallet {
+  id            String   @id @default(cuid())
+  publicKey     String   @unique
+  label         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  isMainWallet  User?    @relation("MainWallet")
+  transactions  SolanaTransaction[]
+  mintedTokens  MintedToken[]
+
+  @@index([userId])
+  @@index([publicKey])
+}
+
+// SolanaTransaction model
+model SolanaTransaction {
+  id            String   @id @default(cuid())
+  signature     String   @unique
+  amount        Decimal
+  type          TransactionType
+  status        TransactionStatus
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  wallet        SolanaWallet @relation(fields: [walletId], references: [id])
+  walletId      String
+
+  @@index([walletId])
+  @@index([signature])
+  @@index([createdAt])
+}
+
+// Blink model
+model Blink {
+  id                     String   @id @default(cuid())
+  name                   String
+  description            String
+  blinkType              BlinkType
+  textContent            String?
+  imageUrl               String?
+  audioUrl               String?
+  color                  String
+  animation              String
+  isPublic               Boolean  @default(false)
+  donationAmount         Float
+  walletAddress          String
+  message                String?
+  paymentAmount          Float?
+  paymentRecipientAddress String?
+  paymentPurpose         String?
+  paymentStatus          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id])
+  userId                 String
+  mintAddress            String?
+  tokenAccount           String?
+  arweaveAccountInfo     Json?
+  nft                    BlinkNFT?
+  donations              Donation[]
+  blinkDonations         BlinkDonation[]
+  gifts                  BlinkGift[]
+  views                  Int      @default(0)
+  shares                 Int      @default(0)
+  mintedToken            MintedToken? @relation("BlinkMintedToken")
+  giftMessage            String?
+  nftMetadata            Json?    
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isPublic])
+}
+
+model NFT {
+  id          String   @id @default(cuid())
+  metadataUri String
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// BlinkNFT model
+model BlinkNFT {
+  id            String   @id @default(cuid())
+  tokenAddress  String   @unique
+  metadataUri   String
+  ownerAddress  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  blink         Blink    @relation(fields: [blinkId], references: [id])
+  blinkId       String   @unique
+
+  @@index([tokenAddress])
+  @@index([ownerAddress])
+}
+
+// Payment model
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Decimal
+  status    PaymentStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Donation model
+model Donation {
+  id          String   @id @default(cuid())
+  amount      Decimal
+  createdAt   DateTime @default(now())
+  sender      User     @relation("DonationSender", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User     @relation("DonationRecipient", fields: [recipientId], references: [id])
+  recipientId String
+  blink       Blink    @relation(fields: [blinkId], references: [id])
+  blinkId     String
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([blinkId])
+  @@index([createdAt])
+}
+
+// Subscriber model
+model Subscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  name      String?
+
+  @@index([email])
+}
+
+// MintedToken model
+model MintedToken {
+  id            String       @id @default(cuid())
+  tokenAddress  String       @unique
+  name          String
+  symbol        String
+  decimals      Int
+  totalSupply   BigInt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  creator       User         @relation(fields: [creatorId], references: [id])
+  creatorId     String
+  wallet        SolanaWallet @relation(fields: [walletId], references: [id])
+  walletId      String
+  blink         Blink?       @relation("BlinkMintedToken", fields: [blinkId], references: [id])
+  blinkId       String?      @unique
+  metadata      Json?
+
+  @@index([creatorId])
+  @@index([walletId])
+  @@index([tokenAddress])
+}
+
+// Enums for PaymentStatus, TransactionType, and TransactionStatus
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  MINT
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum BlinkType {
+  TEXT
+  IMAGE
+  AUDIO
+  NFT
+  GIFT
+  MEMO
+  GOVERNANCE
+  PAYMENT
+}
+
+// BlinkGift model
+model BlinkGift {
+  id          String   @id @default(cuid())
+  amount      Decimal
+  createdAt   DateTime @default(now())
+  sender      User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  senderId    String
+  recipient   User     @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  recipientId String
+  blink       Blink    @relation(fields: [blinkId], references: [id])
+  blinkId     String
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([blinkId])
+  @@index([createdAt])
+}
+
+// BlinkDonation model
+model BlinkDonation {
+  id          String   @id @default(cuid())
+  amount      Decimal
+  createdAt   DateTime @default(now())
+  sender      User     @relation("DonationSender", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User     @relation("DonationRecipient", fields: [recipientId], references: [id])
+  recipientId String
+  blink       Blink    @relation(fields: [blinkId], references: [id])
+  blinkId     String
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([blinkId])
+  @@index([createdAt])
+}
+
+// Define the AirdropEligibilityStatus as an Enum
+enum AirdropEligibilityStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+// Define the Whitelist model
+model Whitelist {
+  id            String    @id @default(cuid())  // Unique ID for each whitelist entry
+  userId        String    // User ID who is in the whitelist
+  airdropId     String    // Airdrop ID the user is whitelisted for
+  addedAt       DateTime  @default(now())      // When the user was added to the whitelist
+  verified      Boolean   @default(false)      // Whether the users whitelist status is verified
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  airdrop       Airdrop   @relation(fields: [airdropId], references: [id])
+}
+
+// Airdrop model
+model Airdrop {
+  id                String               @id @default(cuid()) // Unique ID for each airdrop campaign
+  name              String               // Name of the airdrop (e.g., "Holiday Airdrop")
+  description       String?              // Optional description of the airdrop
+  totalTokens       Decimal              // Total tokens available for the airdrop
+  startDate         DateTime             @default(now()) // Start date of the airdrop
+  endDate           DateTime             // End date of the airdrop
+  eligibilityStatus AirdropEligibilityStatus // Status of eligibility (e.g., "ACTIVE")
+  eligibilities     AirdropEligibility[] // Relation to track users eligible for the airdrop
+  claims            AirdropClaim[]      // Relation to track claims made during the airdrop
+  whitelists        Whitelist[]         // Relation to track whitelist entries for the airdrop
+
+  @@index([startDate])
+  @@index([endDate])
+}
+
+// AirdropClaim model
+model AirdropClaim {
+  id            String   @id @default(cuid()) // Unique ID for claim record
+  userId        String  // Users ID
+  airdropId     String  // Airdrops ID
+  claimedAmount Decimal // Amount of tokens claimed
+  claimedAt     DateTime @default(now())  // Time when the claim occurred
+  transactionId String // Transaction ID for the claim
+
+  // Relations
+  user        User    @relation(fields: [userId], references: [id])
+  airdrop     Airdrop @relation(fields: [airdropId], references: [id])
+
+  @@index([userId, airdropId])
+  @@index([claimedAt])
+}
+
+// AirdropEligibility model
+model AirdropEligibility {
+  id          String  @id @default(cuid()) // Unique ID for eligibility record
+  userId      String  // Users ID
+  airdropId   String  // Airdrops ID
+  totalTokens Decimal // Tokens eligible for the user
+  claimed     Boolean @default(false) // Whether the user has claimed their airdrop
+  createdAt   DateTime @default(now())  // Record creation time
+  updatedAt   DateTime @updatedAt      // Record last update time
+
+  // Relations
+  user        User    @relation(fields: [userId], references: [id])
+  airdrop     Airdrop @relation(fields: [airdropId], references: [id])
+
+  @@index([userId, airdropId])
+}
+
+// Model for Newsletter Subscribers
+model NewsletterSubscriber {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique // Ensure email is unique
+  firstName     String?
+  lastName      String?
+  subscribedAt  DateTime @default(now()) // Timestamp when the user subscribed
+  unsubscribedAt DateTime? // Timestamp when the user unsubscribed (if applicable)
+  isConfirmed   Boolean  @default(false) // Status for confirming subscription
+  isSubscribed  Boolean  @default(true)  // Whether the user is still subscribed
+  preferences   Json?    // For storing user preferences (optional)
+  
+  @@index([email]) // Add an index to optimize email lookups
+  @@index([subscribedAt]) // Index by subscription time for better querying
+}
+
+// Enum for Subscription Status
+enum SubscriptionStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+// BARK emission
+model EmissionRate {
+  id          Int     @id @default(autoincrement())
+  year        Int
+  rate        Float
+  paybackRate Float
+  burnRate    Float
+}
+
+model EmissionSchedule {
+  id    Int      @id @default(autoincrement())
+  date  DateTime
+  event String
+}
