@@ -3,10 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    // Optional experimental features can be configured here
-    appDir: true,
-  },
   env: {
     // Define custom environment variables
     COINGECKO_API_URL: process.env.COINGECKO_API_URL,

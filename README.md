@@ -1,119 +1,161 @@
 # BARK Protocol API
 
-## Overview
-
-BARK Protocol API integrates Solana blockchain and multiple token price APIs to fetch live BARK token prices. It supports various functionalities including fetching the price of the **BARK token (BARK)** from multiple sources such as CoinGecko, CoinMarketCap, Jupiter, and Raydium, as well as managing token staking and marketplace features on Solana.
-
-This application allows seamless interaction with Solana blockchain-based assets, ensuring quick and secure access to market prices and transaction functionalities.
+The BARK Protocol API is a backend service designed to manage BARK token emission schedules, fetch live token prices from various sources (CoinGecko, CoinMarketCap, Jupiter, Raydium), and handle rate-limiting for API requests. This service integrates with Solana and supports token-related data such as emission, payback, and burn rates.
 
 ## Features
 
-- Fetch token prices for **BARK** from multiple APIs:
-  - **CoinGecko**: Track the price of BARK token in USD.
-  - **CoinMarketCap**: Fetch BARK token prices and display them on the platform.
-  - **Jupiter**: Provides another method to fetch token prices.
-  - **Raydium**: Fetch liquidity pool data for BARK token and other Solana tokens.
-
-
-## Requirements
-
-- Node.js (v20 or later)
-- Next.js 15 (for frontend)
-- Solana wallet adapters (e.g., Phantom, Solflare, Backpack)
-- APIs for CoinGecko, CoinMarketCap, Jupiter, and Raydium (API keys are required)
+- **Emission Schedule**: Calculate the emission, payback, and burn rates for BARK tokens over time.
+- **Live Token Price Fetching**: Fetch BARK token prices from CoinGecko, CoinMarketCap, Jupiter, and Raydium.
+- **Rate Limiting**: Prevent excessive API calls by enforcing rate limits.
+- **Environmental Configurations**: Use custom environment variables for API keys and other configuration settings.
 
 ## Setup
 
-### 1. Clone the Repository
+### Prerequisites
 
+- Node.js (v22.x or later)
+- pnpm or yarn
+- Next.js (v15 or later)
+
+### Installation
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/bark-protocol/bark-protocol-api.git
+   cd bark-protocol-api
+   ```
+
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+3. Set up environment variables in a `.env` file:
+   ```env
+   COINGECKO_API_URL=https://api.coingecko.com/api/v3/simple/price
+   COINMARKETCAP_API_URL=https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest
+   JUPITER_API_URL=https://api.jupiter.com/v1/price
+   JUPITER_API_KEY=your-jupiter-api-key
+   COINMARKETCAP_API_KEY=your-coinmarketcap-api-key
+   SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+   ```
+
+4. Run the application:
+   ```bash
+   pnpm run dev
+   ```
+
+The app will be available at `http://localhost:3000`.
+
+## API Endpoints
+
+### `/api/emission-data`
+
+Fetches emission, payback, and burn rates for a given year.
+
+#### Request
+- **Method**: `GET`
+- **Query Parameters**:
+  - `year`: The year for which emission data is to be fetched. Defaults to `2025`.
+
+#### Example
 ```bash
-git clone https://github.com/bark-protocol/bark-protocol-api.git
-cd bark-protocol-api
+GET http://localhost:3000/api/emission-data?year=2025
 ```
 
-### 2. Install Dependencies
+#### Response
+```json
+{
+  "message": "Emission data for the year 2025",
+  "data": {
+    "emissionRate": 1.75,
+    "paybackRate": 0.00,
+    "burnRate": 0.00,
+    "totalSupply": 18446000000,
+    "year": 2025
+  }
+}
+```
 
+### `/api/rate-limit`
+
+Checks and enforces rate limits for the API.
+
+#### Request
+- **Method**: `GET`
+
+#### Example
 ```bash
-pnpm install
+GET http://localhost:3000/api/rate-limit
 ```
 
-### 3. Set Up Environment Variables
-
-Create a `.env` file in the root directory and add your environment variables:
-
-```ini
-COINGECKO_API_URL=https://api.coingecko.com/api/v3/simple/price
-COINMARKETCAP_API_URL=https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest
-JUPITER_API_URL=https://api.jup.ag/v1
-JUPITER_API_KEY=your-jupiter-api-key
-COINMARKETCAP_API_KEY=your-coinmarketcap-api-key
-SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+#### Response
+```json
+{
+  "message": "Rate limit status checked"
+}
 ```
 
-Make sure to replace the `your-jupiter-api-key` and `your-coinmarketcap-api-key` placeholders with actual API keys.
+### `/api/token-price`
 
-### 4. Run the Development Server
+Fetches the live price of the BARK token from CoinGecko, CoinMarketCap, Jupiter, or Raydium.
 
-To start the development server, run:
+#### Request
+- **Method**: `GET`
 
+#### Example
 ```bash
-pnpm run dev
+GET http://localhost:3000/api/token-price
 ```
 
-Your application will be available at `http://localhost:3000`.
-
-## Deployment
-
-### Vercel Deployment
-
-1. Connect your repository to Vercel.
-2. Set up environment variables in the Vercel dashboard under "Environment Variables."
-3. Deploy your project by following Vercel’s deployment steps.
-
-### Build and Export
-
-To build the project for production:
-
-```bash
-pnpm run build
+#### Response
+```json
+{
+  "price": 0.00001
+}
 ```
 
-Then run:
+## Emission Schedule
 
-```bash
-pnpm start
-```
+### Initial Supply
+- **2024**: 18,446,744,073 BARK tokens
 
-This will start the production server.
+### Annual Inflation Rate
+- Starting at 2% in 2025, decreasing by 0.25% each year.
 
-## Testing
+### Emission Distribution
+- **50%** Staking rewards
+- **30%** Ecosystem
+- **20%** Community
 
-The application is designed to handle errors gracefully. The token price fetching API routes will attempt to fetch prices from multiple sources, including CoinGecko, CoinMarketCap, Jupiter, and Raydium.
+### Emission, Payback, and Burn Rates
 
-- Ensure the API keys are correctly set in your environment variables to avoid "API key missing" errors.
-- Use tools like [Solscan](https://solscan.io) or [Raydium](https://raydium.io) to get accurate pool addresses for fetching price data from Raydium.
+| Year  | Emission Rate | Payback Rate | Burn Rate |
+|-------|---------------|--------------|-----------|
+| 2025  | 2.00%         | 0.00%        | 0.00%     |
+| 2026  | 1.75%         | 0.00%        | 0.00%     |
+| 2027  | 1.50%         | 0.00%        | 0.00%     |
+| 2028  | 1.25%         | 0.00%        | 0.00%     |
+| 2029  | 1.00%         | 0.00%        | 0.00%     |
 
 ## Contributing
 
-We welcome contributions! If you'd like to contribute, please follow these steps:
+We welcome contributions to the BARK Protocol API! To contribute, follow these steps:
 
 1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-xyz`).
-3. Make your changes.
-4. Push to your forked repository (`git push origin feature-xyz`).
-5. Create a Pull Request.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes and commit them (`git commit -am 'Add new feature'`).
+4. Push to your branch (`git push origin feature-branch`).
+5. Open a pull request.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Disclaimer
 
-- **Solana**: For building a high-speed blockchain.
-- **Raydium**: For decentralized exchange liquidity.
-- **CoinGecko**: For providing cryptocurrency price data.
-- **CoinMarketCap**: For delivering real-time market data.
-- **Jupiter**: For optimizing Solana token swaps.
-```
+This API is based on estimated BARK token data, and values may not reflect the current blockchain state. Always verify token data with the official blockchain and external sources.
+
+---
+
+For more information, visit the [BARK Protocol](https://barkprotocol.net).
