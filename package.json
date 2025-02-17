@@ -11,7 +11,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@sentry/nextjs": "^8.47.0",
+    "@sentry/nextjs": "^8.49.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "logrocket": "^9.0.0",
